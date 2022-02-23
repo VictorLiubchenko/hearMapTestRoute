@@ -10,8 +10,8 @@ class ViewController: UIViewController {
 
     @IBOutlet private weak var mapView: NMAMapView!
     @IBOutlet private weak var mapDownloadProgressLabel: UILabel!
-    @IBOutlet private weak var buildRouteButton: UIButton!
-    @IBOutlet private weak var getMapButton: UIButton!
+    @IBOutlet private weak var buildLongButton: UIButton!
+    @IBOutlet private weak var buildShortButton: UIButton!
     
     private lazy var mapLoader: NMAMapLoader = {
         let mapLoader = NMAMapLoader.sharedInstance()
@@ -40,13 +40,12 @@ class ViewController: UIViewController {
 
     private lazy var router = NMACoreRouter()
     private let stopovers: [NMAWaypoint] = [
-        .init(geoCoordinates: .init(latitude: 41.33342, longitude: -81.53129), waypointType: .stopWaypoint),
-        .init(geoCoordinates: .init(latitude: 41.35446, longitude: -81.45370), waypointType: .stopWaypoint),
+        .init(geoCoordinates: .init(latitude: 34.22892, longitude: -81.5484), waypointType: .stopWaypoint),
+        .init(geoCoordinates: .init(latitude: 33.63999, longitude: -84.5211), waypointType: .stopWaypoint),
     ]
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        buildRouteButton.isEnabled = false
         mapView.copyrightLogoPosition = .bottomRight
         mapView.projectionType = .globe
         mapView.mapScheme = NMAMapSchemeNormalDay
@@ -72,15 +71,15 @@ class ViewController: UIViewController {
         navigationManager.map = mapView
     }
     
-    @IBAction func didTouchBuildRoute(_ sender: UIButton) {
-        let routingMode = getRoutingMode()
+    @IBAction func didTouchBuildRouteWithLongTruck(_ sender: UIButton) {
+        let routingMode = getRoutingMode(long: true)
         let penalty = NMADynamicPenalty()
         penalty.trafficPenaltyMode = .optimal
         router.dynamicPenalty = penalty
-        router.connectivity = .offline
+        router.connectivity = .online
         router.calculateRoute(withStops: stopovers, routingMode: routingMode) { result, error in
             guard let route = result?.routes?.first, let mapRoute = NMAMapRoute(route) else { return }
-            mapRoute.color = .purple
+            mapRoute.color = .red
             mapRoute.upcomingColor = .purple
             mapRoute.traveledColor = .gray
             mapRoute.isTrafficEnabled = true
@@ -90,8 +89,8 @@ class ViewController: UIViewController {
         }
     }
     
-    @IBAction func didTouchBuildOnlineRoute(_ sender: UIButton) {
-        let routingMode = getRoutingMode()
+    @IBAction func didTouchBuildRouteWithShortTruck(_ sender: UIButton) {
+        let routingMode = getRoutingMode(long: false)
         let penalty = NMADynamicPenalty()
         penalty.trafficPenaltyMode = .optimal
         router.dynamicPenalty = penalty
@@ -115,14 +114,14 @@ class ViewController: UIViewController {
 
 private extension ViewController {
     
-    private func getRoutingMode() -> NMARoutingMode {
+    private func getRoutingMode(long: Bool) -> NMARoutingMode {
         let routingMode = NMARoutingMode()
         routingMode.routingType = .fastest
         routingMode.transportMode = .truck
         routingMode.resultLimit = 3
         routingMode.vehicleWidth = 2.5908
         routingMode.vehicleHeight = 4.11
-        routingMode.vehicleLength = 22.86
+        routingMode.vehicleLength = long == true ? 22.86 : 9.15
         routingMode.weightPerAxle = 0
         routingMode.limitedVehicleWeight = 13
         routingMode.trailersCount = 1
@@ -164,15 +163,9 @@ extension ViewController: NMAMapLoaderDelegate {
     func mapLoader(_ mapLoader: NMAMapLoader, didUpdate progress: Float) {
         print(progress)
         mapDownloadProgressLabel.text = "Map loading progress = \(progress)"
-        if progress == 1.0 {
-            buildRouteButton.isEnabled = true
-            getMapButton.isEnabled = false
-        }
     }
 
     func mapLoader(_ mapLoader: NMAMapLoader, didInstallPackages mapLoaderResult: NMAMapLoaderResult) {
         print("installed")
-        buildRouteButton.isEnabled = true
-        getMapButton.isEnabled = false
     }
 }
